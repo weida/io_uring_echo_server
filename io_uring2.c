@@ -17,13 +17,13 @@
 #define MAX_SQE_PER_LOOP 128
 
 struct request {
-    int           type;
-    int           client_socket;
-    struct iovec  iov;
+    int          type;
+    int          client_socket;
+    struct iovec iov;
 };
 
 struct io_uring ring;
-int count = 0;
+int             count = 0;
 
 int add_accept_request(int server_socket, struct sockaddr_in* client_addr,
                        socklen_t* client_addr_len)
@@ -35,21 +35,19 @@ int add_accept_request(int server_socket, struct sockaddr_in* client_addr,
     struct request* req = calloc(1, sizeof(struct request));
     req->type = ACCEPT;
     io_uring_sqe_set_data(sqe, req);
-//    printf("accept\n");
     return 0;
 }
 
 int add_read_request(int client_socket)
 {
     struct io_uring_sqe* sqe = io_uring_get_sqe(&ring);
-    struct request* req = calloc(1,  sizeof(struct request));
-    req->iov.iov_base =  calloc(1, BUF_SIZE);
+    struct request*      req = calloc(1, sizeof(struct request));
+    req->iov.iov_base = calloc(1, BUF_SIZE);
     req->iov.iov_len = BUF_SIZE;
     req->type = READ;
     req->client_socket = client_socket;
     io_uring_prep_readv(sqe, client_socket, &req->iov, 1, 0);
     io_uring_sqe_set_data(sqe, req);
- //   printf("read\n");
     return 0;
 }
 
@@ -59,7 +57,6 @@ int add_close_request(struct request* req)
     req->type = CLOSE;
     io_uring_prep_close(sqe, req->client_socket);
     io_uring_sqe_set_data(sqe, req);
-  //  printf("close\n");
     return 0;
 }
 
@@ -69,7 +66,6 @@ int add_write_request(struct request* req)
     req->type = WRITE;
     io_uring_prep_writev(sqe, req->client_socket, &req->iov, 1, 0);
     io_uring_sqe_set_data(sqe, req);
-   // printf("write\n");
     return 0;
 }
 
@@ -77,7 +73,6 @@ int free_request(struct request* req)
 {
     free(req->iov.iov_base);
     free(req);
-    //printf("free\n");
     return 0;
 }
 
@@ -137,7 +132,6 @@ int main(int argc, char const* argv[])
         int ret = io_uring_wait_cqe(&ring, &cqe);
 
         while (1) {
-
             struct request* req = (struct request*)cqe->user_data;
             switch (req->type) {
             case ACCEPT:
@@ -145,7 +139,7 @@ int main(int argc, char const* argv[])
                                    &client_addr_len);
                 submissions += 1;
                 add_read_request(cqe->res);
-            	free_request(req);
+                free_request(req);
                 submissions += 1;
                 break;
             case READ:
@@ -180,7 +174,7 @@ int main(int argc, char const* argv[])
             }
         }
         if (submissions > 0) {
-            count ++;
+            count++;
             io_uring_submit(&ring);
         }
     }
